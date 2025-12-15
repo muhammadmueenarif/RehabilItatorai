@@ -755,29 +755,21 @@
 
       async function getAIAnalysis(reportText, onToken) {
         const emit = typeof onToken === "function" ? onToken : () => {};
-        const apiKey = "sk-ba2ff135a0ab48218d88c776e41b32f0";
-        const apiUrl = "https://api.deepseek.com/v1/chat/completions";
+        
+        // Use Vercel serverless function to avoid CORS issues
+        const apiUrl = "/api/chat";
 
         const systemPrompt = window.BULLY_SYSTEM_PROMPT || "";
 
         const payload = {
-          model: "deepseek-chat",
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content: `Here is the combined text from the user's credit reports: \n\n${reportText}`,
-            },
-          ],
-          response_format: { type: "json_object" },
-          stream: true,
+          reportText: reportText,
+          systemPrompt: systemPrompt
         };
 
         const response = await fetch(apiUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify(payload),
         });
