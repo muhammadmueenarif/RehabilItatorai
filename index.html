@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>REHABILITATOR - Credit Report Assistant</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+    <script>
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="prompt.js"></script>
+    <script src="ghl-integration.js"></script>
+    <style>
+      /* REHABILITATOR Brand Colors */
+      :root {
+        --gold-primary: #D4AF37;
+        --gold-light: #E8C878;
+        --gold-dark: #B8941F;
+        --green-primary: #2D5F4D;
+        --green-light: #3A7A63;
+        --green-accent: #4A9B7F;
+        --black-bg: #0A0A0A;
+        --black-overlay: rgba(10, 10, 10, 0.85);
+      }
+
+      /* Custom styles to match REHABILITATOR design */
+      html,
+      body {
+        background-color: var(--black-bg);
+        height: 100%;
+        width: 100%;
+        overflow: hidden;
+      }
+      .main-container {
+        background: linear-gradient(135deg, #0A0A0A 0%, #1a1a1a 50%, #0A0A0A 100%);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        min-height: 100vh;
+      }
+      .background-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center, rgba(45, 95, 77, 0.1) 0%, transparent 70%);
+        z-index: 1;
+      }
+      .content-wrapper {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+      }
+
+      .text-gold {
+        background: linear-gradient(180deg, #E8C878 0%, #D4AF37 50%, #B8941F 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        text-shadow: 0 2px 20px rgba(212, 175, 55, 0.3);
+      }
+      
+      .chat-bubble-ai {
+        background: linear-gradient(135deg, rgba(45, 95, 77, 0.2) 0%, rgba(45, 95, 77, 0.3) 100%);
+        color: var(--gold-light);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--green-primary);
+        box-shadow: 0 4px 15px rgba(45, 95, 77, 0.2);
+      }
+      .chat-bubble-user {
+        background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(184, 148, 31, 0.2) 100%);
+        color: var(--gold-light);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--gold-dark);
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.15);
+      }
+      .file-tag {
+        background: linear-gradient(135deg, rgba(45, 95, 77, 0.3) 0%, rgba(45, 95, 77, 0.4) 100%);
+        color: var(--gold-light);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--green-primary);
+      }
+      .file-tag .remove-file-btn {
+        color: var(--gold-light);
+      }
+      .file-tag .remove-file-btn:hover {
+        color: var(--gold-primary);
+      }
+      #user-input {
+        color: var(--gold-light);
+      }
+      #user-input::placeholder {
+        color: rgba(212, 175, 55, 0.5);
+      }
+      
+      /* Mobile-specific improvements */
+      @media (max-width: 640px) {
+        .main-container {
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+        .content-wrapper {
+          padding-bottom: 1rem;
+        }
+        .text-clipper h1 {
+          line-height: 1.1;
+        }
+        .text-clipper h2 {
+          line-height: 1.2;
+        }
+      }
+      
+      /* Desktop-specific improvements */
+      @media (min-width: 641px) {
+        .content-wrapper {
+          padding-bottom: 0.5rem;
+          min-height: calc(100vh - 1rem);
+        }
+        .main-container {
+          padding-bottom: 0.5rem;
+        }
+        #user-input {
+          font-size: 16px;
+        }
+        #user-input::placeholder {
+          font-size: 16px;
+        }
+        .input-container {
+          background: linear-gradient(135deg, rgba(45, 95, 77, 0.2) 0%, rgba(45, 95, 77, 0.3) 100%) !important;
+          border: 1px solid var(--green-primary) !important;
+          box-shadow: 0 4px 15px rgba(45, 95, 77, 0.2) !important;
+        }
+        #initial-view {
+          max-height: calc(100vh - 140px);
+        }
+      }
+      
+      /* Large desktop improvements */
+      @media (min-width: 1024px) {
+        .content-wrapper {
+          padding-bottom: 1rem;
+        }
+        .main-container {
+          padding-bottom: 1rem;
+        }
+        #initial-view {
+          max-height: calc(100vh - 160px);
+        }
+      }
+    </style>
+  </head>
+  <body class="bg-black">
+    <div class="main-container w-full h-screen shadow-2xl">
+      <div class="background-overlay"></div>
+      <div class="content-wrapper">
+        <div
+          id="initial-view"
+          class="flex-1 flex flex-col items-center justify-center text-center px-6 py-8 pb-20 sm:pb-16 md:pb-12 text-white"
+        >
+          <!-- REHABILITATOR Logo SVG -->
+          <div class="mb-8 sm:mb-10">
+            <svg width="181" height="185" viewBox="0 0 181 185" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="3" width="175" height="179" fill="#000414" stroke="#D6A75C" stroke-width="6"/>
+              <path d="M118.053 45.75C116.419 45.75 114.853 45.1442 113.698 44.0659C112.544 42.9875 111.895 41.525 111.895 40C111.895 38.475 112.544 37.0125 113.698 35.9341C114.853 34.8558 116.419 34.25 118.053 34.25H142.684C144.317 34.25 145.884 34.8558 147.038 35.9341C148.193 37.0125 148.842 38.475 148.842 40V63C148.842 64.525 148.193 65.9875 147.038 67.0659C145.884 68.1442 144.317 68.75 142.684 68.75C141.051 68.75 139.485 68.1442 138.33 67.0659C137.175 65.9875 136.526 64.525 136.526 63V53.8805L100.854 87.1903C99.6988 88.2682 98.1329 88.8738 96.5 88.8738C94.8671 88.8738 93.3011 88.2682 92.1464 87.1903L74.9474 71.1305L42.3536 101.565C41.1922 102.613 39.6367 103.192 38.0222 103.179C36.4076 103.166 34.8631 102.561 33.7214 101.495C32.5797 100.429 31.932 98.9869 31.918 97.4793C31.904 95.9717 32.5247 94.5192 33.6464 93.4347L70.5937 58.9348C71.7485 57.8568 73.3145 57.2512 74.9474 57.2512C76.5802 57.2512 78.1462 57.8568 79.301 58.9348L96.5 74.9945L127.819 45.75H118.053ZM44.1579 126.25V143.5C44.1579 145.025 43.5091 146.488 42.3543 147.566C41.1995 148.644 39.6332 149.25 38 149.25C36.3668 149.25 34.8005 148.644 33.6457 147.566C32.4909 146.488 31.8421 145.025 31.8421 143.5V126.25C31.8421 124.725 32.4909 123.262 33.6457 122.184C34.8005 121.106 36.3668 120.5 38 120.5C39.6332 120.5 41.1995 121.106 42.3543 122.184C43.5091 123.262 44.1579 124.725 44.1579 126.25ZM74.9474 103.25C74.9474 101.725 74.2986 100.262 73.1438 99.1841C71.9889 98.1058 70.4226 97.5 68.7895 97.5C67.1563 97.5 65.59 98.1058 64.4352 99.1841C63.2804 100.262 62.6316 101.725 62.6316 103.25V143.5C62.6316 145.025 63.2804 146.488 64.4352 147.566C65.59 148.644 67.1563 149.25 68.7895 149.25C70.4226 149.25 71.9889 148.644 73.1438 147.566C74.2986 146.488 74.9474 145.025 74.9474 143.5V103.25ZM99.5789 109C101.212 109 102.778 109.606 103.933 110.684C105.088 111.762 105.737 113.225 105.737 114.75V143.5C105.737 145.025 105.088 146.488 103.933 147.566C102.778 148.644 101.212 149.25 99.5789 149.25C97.9458 149.25 96.3795 148.644 95.2247 147.566C94.0698 146.488 93.421 145.025 93.421 143.5V114.75C93.421 113.225 94.0698 111.762 95.2247 110.684C96.3795 109.606 97.9458 109 99.5789 109ZM136.526 86C136.526 84.475 135.878 83.0125 134.723 81.9341C133.568 80.8558 132.002 80.25 130.368 80.25C128.735 80.25 127.169 80.8558 126.014 81.9341C124.859 83.0125 124.211 84.475 124.211 86V143.5C124.211 145.025 124.859 146.488 126.014 147.566C127.169 148.644 128.735 149.25 130.368 149.25C132.002 149.25 133.568 148.644 134.723 147.566C135.878 146.488 136.526 145.025 136.526 143.5V86Z" fill="#346F42"/>
+              <path d="M118.053 45.75C116.419 45.75 114.853 45.1442 113.698 44.0659C112.544 42.9875 111.895 41.525 111.895 40C111.895 38.475 112.544 37.0125 113.698 35.9341C114.853 34.8558 116.419 34.25 118.053 34.25H142.684C144.317 34.25 145.884 34.8558 147.038 35.9341C148.193 37.0125 148.842 38.475 148.842 40V63C148.842 64.525 148.193 65.9875 147.038 67.0659C145.884 68.1442 144.317 68.75 142.684 68.75C141.051 68.75 139.485 68.1442 138.33 67.0659C137.175 65.9875 136.526 64.525 136.526 63V53.8805L100.854 87.1903C99.6988 88.2682 98.1329 88.8738 96.5 88.8738C94.8671 88.8738 93.3011 88.2682 92.1464 87.1903L74.9474 71.1305L42.3536 101.565C41.1922 102.613 39.6367 103.192 38.0222 103.179C36.4076 103.166 34.8631 102.561 33.7214 101.495C32.5797 100.429 31.932 98.9869 31.918 97.4793C31.904 95.9717 32.5247 94.5192 33.6464 93.4347L70.5937 58.9348C71.7485 57.8568 73.3145 57.2512 74.9474 57.2512C76.5802 57.2512 78.1462 57.8568 79.301 58.9348L96.5 74.9945L127.819 45.75H118.053ZM44.1579 126.25V143.5C44.1579 145.025 43.5091 146.488 42.3543 147.566C41.1995 148.644 39.6332 149.25 38 149.25C36.3668 149.25 34.8005 148.644 33.6457 147.566C32.4909 146.488 31.8421 145.025 31.8421 143.5V126.25C31.8421 124.725 32.4909 123.262 33.6457 122.184C34.8005 121.106 36.3668 120.5 38 120.5C39.6332 120.5 41.1995 121.106 42.3543 122.184C43.5091 123.262 44.1579 124.725 44.1579 126.25ZM74.9474 103.25C74.9474 101.725 74.2986 100.262 73.1438 99.1841C71.9889 98.1058 70.4226 97.5 68.7895 97.5C67.1563 97.5 65.59 98.1058 64.4352 99.1841C63.2804 100.262 62.6316 101.725 62.6316 103.25V143.5C62.6316 145.025 63.2804 146.488 64.4352 147.566C65.59 148.644 67.1563 149.25 68.7895 149.25C70.4226 149.25 71.9889 148.644 73.1438 147.566C74.2986 146.488 74.9474 145.025 74.9474 143.5V103.25ZM99.5789 109C101.212 109 102.778 109.606 103.933 110.684C105.088 111.762 105.737 113.225 105.737 114.75V143.5C105.737 145.025 105.088 146.488 103.933 147.566C102.778 148.644 101.212 149.25 99.5789 149.25C97.9458 149.25 96.3795 148.644 95.2247 147.566C94.0698 146.488 93.421 145.025 93.421 143.5V114.75C93.421 113.225 94.0698 111.762 95.2247 110.684C96.3795 109.606 97.9458 109 99.5789 109ZM136.526 86C136.526 84.475 135.878 83.0125 134.723 81.9341C133.568 80.8558 132.002 80.25 130.368 80.25C128.735 80.25 127.169 80.8558 126.014 81.9341C124.859 83.0125 124.211 84.475 124.211 86V143.5C124.211 145.025 124.859 146.488 126.014 147.566C127.169 148.644 128.735 149.25 130.368 149.25C132.002 149.25 133.568 148.644 134.723 147.566C135.878 146.488 136.526 145.025 136.526 143.5V86Z" fill="#346F42"/>
+              <path d="M118.053 45.75C116.419 45.75 114.853 45.1442 113.698 44.0659C112.544 42.9875 111.895 41.525 111.895 40C111.895 38.475 112.544 37.0125 113.698 35.9341C114.853 34.8558 116.419 34.25 118.053 34.25H142.684C144.317 34.25 145.884 34.8558 147.038 35.9341C148.193 37.0125 148.842 38.475 148.842 40V63C148.842 64.525 148.193 65.9875 147.038 67.0659C145.884 68.1442 144.317 68.75 142.684 68.75C141.051 68.75 139.485 68.1442 138.33 67.0659C137.175 65.9875 136.526 64.525 136.526 63V53.8805L100.854 87.1903C99.6988 88.2682 98.1329 88.8738 96.5 88.8738C94.8671 88.8738 93.3011 88.2682 92.1464 87.1903L74.9474 71.1305L42.3536 101.565C41.1922 102.613 39.6367 103.192 38.0222 103.179C36.4076 103.166 34.8631 102.561 33.7214 101.495C32.5797 100.429 31.932 98.9869 31.918 97.4793C31.904 95.9717 32.5247 94.5192 33.6464 93.4347L70.5937 58.9348C71.7485 57.8568 73.3145 57.2512 74.9474 57.2512C76.5802 57.2512 78.1462 57.8568 79.301 58.9348L96.5 74.9945L127.819 45.75H118.053ZM44.1579 126.25V143.5C44.1579 145.025 43.5091 146.488 42.3543 147.566C41.1995 148.644 39.6332 149.25 38 149.25C36.3668 149.25 34.8005 148.644 33.6457 147.566C32.4909 146.488 31.8421 145.025 31.8421 143.5V126.25C31.8421 124.725 32.4909 123.262 33.6457 122.184C34.8005 121.106 36.3668 120.5 38 120.5C39.6332 120.5 41.1995 121.106 42.3543 122.184C43.5091 123.262 44.1579 124.725 44.1579 126.25ZM74.9474 103.25C74.9474 101.725 74.2986 100.262 73.1438 99.1841C71.9889 98.1058 70.4226 97.5 68.7895 97.5C67.1563 97.5 65.59 98.1058 64.4352 99.1841C63.2804 100.262 62.6316 101.725 62.6316 103.25V143.5C62.6316 145.025 63.2804 146.488 64.4352 147.566C65.59 148.644 67.1563 149.25 68.7895 149.25C70.4226 149.25 71.9889 148.644 73.1438 147.566C74.2986 146.488 74.9474 145.025 74.9474 143.5V103.25ZM99.5789 109C101.212 109 102.778 109.606 103.933 110.684C105.088 111.762 105.737 113.225 105.737 114.75V143.5C105.737 145.025 105.088 146.488 103.933 147.566C102.778 148.644 101.212 149.25 99.5789 149.25C97.9458 149.25 96.3795 148.644 95.2247 147.566C94.0698 146.488 93.421 145.025 93.421 143.5V114.75C93.421 113.225 94.0698 111.762 95.2247 110.684C96.3795 109.606 97.9458 109 99.5789 109ZM136.526 86C136.526 84.475 135.878 83.0125 134.723 81.9341C133.568 80.8558 132.002 80.25 130.368 80.25C128.735 80.25 127.169 80.8558 126.014 81.9341C124.859 83.0125 124.211 84.475 124.211 86V143.5C124.211 145.025 124.859 146.488 126.014 147.566C127.169 148.644 128.735 149.25 130.368 149.25C132.002 149.25 133.568 148.644 134.723 147.566C135.878 146.488 136.526 145.025 136.526 143.5V86Z" fill="#346F42"/>
+              </svg>
+              
+          </div>
+          
+          <div>
+            <h1
+              class="text-gold text-4xl sm:text-5xl md:text-7xl font-bold tracking-widest leading-tight mb-4"
+              style="font-family: 'Georgia', serif; letter-spacing: 0.1em;"
+            >
+              REHABILITATOR
+            </h1>
+            <h2 class="text-2xl sm:text-3xl md:text-4xl font-light tracking-wide mt-6" style="color: var(--gold-light); letter-spacing: 0.15em;">
+              YOUR CREDIT ASSISTANT
+            </h2>
+          </div>
+          <div class="mt-8 sm:mt-10 space-y-4 max-w-sm sm:max-w-md mx-auto">
+            <div class="flex items-start justify-center space-x-2 text-xs sm:text-sm text-white/80 px-2">
+              <input
+                type="checkbox"
+                id="terms-checkbox"
+                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 mt-0.5 flex-shrink-0"
+                required
+              />
+              <label for="terms-checkbox" class="text-xs sm:text-sm leading-relaxed" style="color: var(--gold-light);">
+                I agree to the 
+                <button
+                  type="button"
+                  onclick="openTermsModal()"
+                  class="hover:opacity-80 underline"
+                  style="color: var(--gold-primary);"
+                >
+                  Terms of Service
+                </button>
+              </label>
+            </div>
+            <button
+              id="upload-button"
+              onclick="handleUploadClick()"
+              disabled
+              class="w-full px-4 sm:px-6 py-3 rounded-lg flex items-center justify-center space-x-3 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed font-semibold tracking-wide"
+              style="background: linear-gradient(135deg, rgba(45, 95, 77, 0.3) 0%, rgba(45, 95, 77, 0.4) 100%); border: 2px solid var(--gold-dark); color: var(--gold-light); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);"
+              onmouseover="this.style.borderColor='var(--gold-primary)'; this.style.boxShadow='0 6px 20px rgba(212, 175, 55, 0.3)';"
+              onmouseout="this.style.borderColor='var(--gold-dark)'; this.style.boxShadow='0 4px 15px rgba(212, 175, 55, 0.2)';"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <span style="color: var(--gold-light);">Upload your 3 Credit Reports</span>
+            </button>
+          </div>
+        </div>
+
+        <div
+          id="chat-container"
+          class="hidden flex-1 p-3 sm:p-4 overflow-y-auto space-y-4"
+        >
+          </div>
+
+        <div class="pt-8 pb-3 px-3 sm:pt-12 sm:pb-4 sm:px-4 flex-shrink-0" style="border-top: 1px solid var(--green-primary); background: transparent;">
+          <div
+            class="input-container rounded-lg flex items-center space-x-2 p-2 sm:p-1 shadow-lg"
+            style="background: linear-gradient(135deg, rgba(45, 95, 77, 0.2) 0%, rgba(45, 95, 77, 0.3) 100%); border: 1px solid var(--green-primary);"
+          >
+            <input
+              type="file"
+              id="file-upload"
+              class="hidden"
+              accept=".pdf,.txt"
+              onchange="handleFileUpload(event)"
+              multiple
+            />
+            <button
+              onclick="handleUploadClick()"
+              class="p-2 sm:p-2 rounded-full transition duration-300"
+              style="color: var(--gold-light);"
+              onmouseover="this.style.color='var(--gold-primary)'; this.style.background='rgba(45, 95, 77, 0.3)';"
+              onmouseout="this.style.color='var(--gold-light)'; this.style.background='transparent';"
+              aria-label="Upload file"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+            <textarea
+              id="user-input"
+              rows="1"
+              class="flex-1 p-3 sm:p-2 bg-transparent border-none rounded-lg focus:outline-none focus:ring-0 resize-none min-h-[44px] sm:min-h-[40px]"
+              style="color: var(--gold-light);"
+              placeholder="Send a message..."
+            ></textarea>
+            <button
+              id="send-button"
+              onclick="sendMessage()"
+              class="bg-transparent p-2 sm:p-2 rounded-lg transition duration-300"
+              style="color: var(--gold-light);"
+              onmouseover="this.style.color='var(--gold-primary)'; this.style.background='rgba(45, 95, 77, 0.3)';"
+              onmouseout="this.style.color='var(--gold-light)'; this.style.background='transparent';"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </div>
+          <div
+            id="file-name-container"
+            class="mt-2 flex flex-wrap items-center gap-2"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Terms of Service Modal -->
+    <div
+      id="terms-modal"
+      class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50 p-4"
+    >
+      <div class="bg-white p-4 sm:p-8 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <h2 class="text-2xl font-bold mb-4">Terms of Service</h2>
+        <div class="text-sm text-gray-700 space-y-4 max-h-96 overflow-y-auto">
+          <p><strong>Effective Date:</strong> September 13, 2025</p>
+          <p><strong>Company:</strong> The Bureau Bullies, LLC – Wilmington, Delaware</p>
+          
+          <div>
+            <h3 class="font-semibold text-lg">1. Acceptance of Terms</h3>
+            <p>By accessing or using Bully AI ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, you must immediately discontinue use of the Service. These Terms constitute a binding legal agreement between you and The Bureau Bullies, LLC.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">2. Description of Service</h3>
+            <p>Bully AI is an automated tool that scans uploaded credit reports, identifies potential violations, and generates dispute materials for personal use. The Service is provided for educational and informational purposes only. It does not constitute legal, financial, or professional advice, and no attorney-client or fiduciary relationship is created.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">3. Eligibility</h3>
+            <p>You must be at least 18 years of age and legally competent to enter into contracts. By using the Service, you represent and warrant that you meet these requirements.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">4. Data Collection, License, and Communications</h3>
+            <p>When using the Service, you may provide personal information including but not limited to your name, address, email address, and uploaded credit reports. By providing such data, you grant The Bureau Bullies a perpetual, irrevocable, worldwide, royalty-free, transferable license to: (a) collect, store, process, analyze, reproduce, and use the information you provide for the operation, improvement, and marketing of the Service; (b) share data with contractors, vendors, affiliates, and service providers as necessary; (c) contact you by email or mail for service-related, legal, or promotional purposes; and (d) monitor and record your use of the Service for compliance, quality control, and improvement purposes.</p>
+            <p>You expressly consent to receive email communications from us, including automated or promotional messages. You may opt out of promotional messages at any time, but operational communications are mandatory to use the Service.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">5. No Reliance; No Legal Advice</h3>
+            <p>You acknowledge and agree that The Bureau Bullies is not a law firm, attorney, or financial advisor. The Service is not a substitute for legal or financial advice. You will not rely on the Service for any legal, financial, or professional decisions. Any use of the Service is entirely at your own risk.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">6. Waiver of Statutory and Other Claims</h3>
+            <p>To the maximum extent permitted by law, you expressly waive and release The Bureau Bullies from any right to pursue statutory damages, penalties, or remedies under any state or federal law, including but not limited to the Fair Credit Reporting Act (FCRA), the Telephone Consumer Protection Act (TCPA), and any consumer protection statutes. You agree that your sole and exclusive remedy for any claim related to the Service shall be limited to the arbitration procedures described in Section 9 and, in no event, monetary damages exceeding one hundred dollars ($100).</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">7. Limitation of Liability</h3>
+            <p>To the fullest extent permitted by law, the Service is provided "as is" and "as available", without any warranties of any kind, whether express or implied. The Bureau Bullies and its officers, directors, employees, contractors, affiliates, and agents disclaim liability for any damages, including but not limited to: direct, indirect, incidental, consequential, special, exemplary, or punitive damages; loss of data; lost profits; loss of goodwill; or reliance damages. The Bureau Bullies shall not be liable for errors, omissions, delays, or interruptions, even if advised of the possibility of such damages. In no event shall The Bureau Bullies' total liability exceed one hundred dollars ($100) regardless of the cause of action.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">8. Indemnification</h3>
+            <p>You agree to defend, indemnify, and hold harmless The Bureau Bullies, LLC, its affiliates, and employees from and against any claims, liabilities, damages, losses, and expenses (including attorney's fees) arising out of or in any way connected with your use or misuse of the Service, your violation of these Terms, or your violation of any third-party rights.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">9. Arbitration, Waiver of Jury Trial, and Governing Law</h3>
+            <p>All disputes shall be resolved by binding arbitration in Wilmington, Delaware under the rules of the American Arbitration Association. You waive any right to a jury trial or to participate in a class action. This Agreement is governed by and construed under the laws of the State of Delaware.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">10. Force Majeure</h3>
+            <p>The Bureau Bullies shall not be liable for any failure or delay caused by circumstances beyond its reasonable control, including but not limited to natural disasters, labor disputes, acts of government, cyberattacks, or disruptions of internet services.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">11. Severability and Survival</h3>
+            <p>If any provision of these Terms is found invalid or unenforceable, the remaining provisions shall remain in full force and effect. Provisions relating to limitation of liability, waiver of statutory damages, indemnification, dispute resolution, and data rights shall survive termination of this Agreement.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">12. Modifications</h3>
+            <p>The Bureau Bullies reserves the right to modify these Terms at any time, effective upon posting. Continued use of the Service constitutes acceptance of any modifications.</p>
+          </div>
+
+          <div>
+            <h3 class="font-semibold text-lg">13. Contact</h3>
+            <p>For questions regarding these Terms, contact us at: The Bureau Bullies, LLC, Wilmington, DE. Email: info@thebureaubullies.com</p>
+          </div>
+        </div>
+        <div class="mt-6 flex justify-end space-x-4">
+            <button
+              type="button"
+              onclick="closeTermsModal()"
+              class="px-4 py-2 rounded-lg font-semibold transition duration-300"
+              style="background: var(--gold-dark); color: #0A0A0A;"
+              onmouseover="this.style.background='var(--gold-primary)';"
+              onmouseout="this.style.background='var(--gold-dark)';"
+            >
+              Close
+            </button>
+        </div>
+      </div>
+    </div>
+
+    <div
+      id="lead-capture-modal"
+      class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50"
+    >
+      <div class="bg-white p-8 rounded-lg shadow-xl w-full max-w-md">
+        <h2 class="text-2xl font-bold mb-4">Enter Your Information</h2>
+        <p class="text-gray-600 mb-6">
+          Please provide your details to personalize and download your dispute
+          letter.
+        </p>
+        <form id="lead-capture-form" onsubmit="handleLeadCaptureSubmit(event)">
+          <div class="space-y-4">
+            <input
+              type="text"
+              id="user-name"
+              placeholder="Full Name"
+              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="tel"
+              id="user-phone"
+              placeholder="Phone Number"
+              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <input
+              type="email"
+              id="user-email"
+              placeholder="Email Address"
+              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+            <textarea
+              id="user-address"
+              placeholder="Full Mailing Address"
+              rows="3"
+              class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              required
+            ></textarea>
+          </div>
+          <div class="mt-6 flex justify-end space-x-4">
+            <button
+              type="button"
+              onclick="closeLeadCaptureModal()"
+              class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-semibold transition duration-300"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              class="px-4 py-2 rounded-lg font-semibold transition duration-300"
+              style="background: linear-gradient(135deg, var(--green-primary) 0%, var(--green-light) 100%); color: var(--gold-light); border: 1px solid var(--gold-dark);"
+              onmouseover="this.style.boxShadow='0 6px 20px rgba(212, 175, 55, 0.3)';"
+              onmouseout="this.style.boxShadow='none';"
+            >
+              Submit & Download
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      let generatedLetters = {};
+      let stagedFiles = [];
+      let userData = null;
+      let currentDownloadStep = null;
+      let termsAccepted = false;
+      let ghlContactSaved = false; // Track if contact has been saved to GHL
+
+      // Terms of Service functions
+      function openTermsModal() {
+        document.getElementById("terms-modal").classList.remove("hidden");
+      }
+
+      function closeTermsModal() {
+        document.getElementById("terms-modal").classList.add("hidden");
+      }
+
+      function handleUploadClick() {
+        if (termsAccepted) {
+          document.getElementById('file-upload').click();
+        }
+      }
+
+      // Checkbox change handler
+      document.addEventListener('DOMContentLoaded', function() {
+        const termsCheckbox = document.getElementById('terms-checkbox');
+        const uploadButton = document.getElementById('upload-button');
+        
+        termsCheckbox.addEventListener('change', function() {
+          termsAccepted = this.checked;
+          uploadButton.disabled = !termsAccepted;
+        });
+      });
+
+      function appendMessage(text, sender) {
+        const chatContainer = document.getElementById("chat-container");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `flex ${
+          sender === "user" ? "justify-end" : "justify-start"
+        }`;
+        const bubble = document.createElement("div");
+        bubble.className = `chat-bubble p-3 rounded-lg ${
+          sender === "user" ? "chat-bubble-user" : "chat-bubble-ai"
+        }`;
+        const content = document.createElement("p");
+        content.className = "text-sm";
+        content.innerText = text;
+        bubble.appendChild(content);
+        messageDiv.appendChild(bubble);
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      function showLoadingIndicator() {
+        const chatContainer = document.getElementById("chat-container");
+        const loadingDiv = document.createElement("div");
+        loadingDiv.id = "loading-indicator";
+        loadingDiv.className = "flex justify-start";
+        loadingDiv.innerHTML = `
+                <div class="chat-bubble chat-bubble-ai p-3 rounded-lg flex items-center space-x-2">
+                    <div class="loader" style="border-color: var(--green-primary); border-top-color: var(--gold-primary);"></div>
+                    <p class="text-sm" style="color: var(--gold-light);">REHABILITATOR is analyzing your report...</p>
+                </div>
+            `;
+        chatContainer.appendChild(loadingDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      function removeLoadingIndicator() {
+        const loadingIndicator = document.getElementById("loading-indicator");
+        if (loadingIndicator) {
+          loadingIndicator.remove();
+        }
+      }
+
+      function handleFileUpload(event) {
+        const newFiles = event.target.files;
+        if (!newFiles || newFiles.length === 0) return;
+        stagedFiles.push(...Array.from(newFiles));
+        updateStagedFilesUI();
+        event.target.value = "";
+      }
+
+      function updateStagedFilesUI() {
+        const fileNameContainer = document.getElementById(
+          "file-name-container"
+        );
+        fileNameContainer.innerHTML = "";
+        if (stagedFiles.length > 0) {
+          stagedFiles.forEach((file, index) => {
+            const fileTag = document.createElement("div");
+            fileTag.className =
+              "file-tag inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full";
+            const fileName = document.createElement("span");
+            fileName.textContent = file.name;
+            const removeBtn = document.createElement("button");
+            removeBtn.className =
+              "ml-2 text-gray-500 hover:text-gray-900 remove-file-btn";
+            removeBtn.innerHTML = "&times;";
+            removeBtn.setAttribute("aria-label", `Remove ${file.name}`);
+            removeBtn.onclick = () => removeStagedFile(index);
+            fileTag.appendChild(fileName);
+            fileTag.appendChild(removeBtn);
+            fileNameContainer.appendChild(fileTag);
+          });
+        }
+      }
+
+      function removeStagedFile(index) {
+        stagedFiles.splice(index, 1);
+        updateStagedFilesUI();
+      }
+
+      async function sendMessage() {
+        const userInput = document.getElementById("user-input");
+        const reportText = userInput.value.trim();
+        if (stagedFiles.length === 0 && !reportText) return;
+
+        const initialView = document.getElementById("initial-view");
+        const chatContainer = document.getElementById("chat-container");
+        if (!chatContainer.classList.contains("active-chat")) {
+          initialView.classList.add("hidden");
+          chatContainer.classList.remove("hidden");
+          chatContainer.classList.add("active-chat");
+          appendMessage(
+            "Welcome to REHABILITATOR! Upload your 3-bureau credit reports (PDF recommended). I'll scan for inconsistencies—DOFD, DOLP, charge-off dates, payment-history conflicts, and more—then estimate potential case value if a violation becomes willful and draft your letters for each step. You'll get ready-to-mail docs after we confirm the details.",
+            "ai"
+          );
+        }
+
+        let userMessageText = reportText
+          ? `Analyzing pasted text and ${stagedFiles.length} uploaded file(s).`
+          : `Analyzing ${stagedFiles.length} uploaded file(s): ${stagedFiles
+              .map((f) => f.name)
+              .join(", ")}`;
+        if (stagedFiles.length > 0 || reportText) {
+          appendMessage(userMessageText, "user");
+        }
+
+        showLoadingIndicator();
+        document.getElementById("send-button").disabled = true;
+
+        const filesToProcess = [...stagedFiles];
+        userInput.value = "";
+        stagedFiles = [];
+        updateStagedFilesUI();
+
+        const fileReadPromises = filesToProcess.map((file) => {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              if (file.type === "application/pdf") {
+                const typedarray = new Uint8Array(e.target.result);
+                pdfjsLib
+                  .getDocument(typedarray)
+                  .promise.then((pdf) => {
+                    const pagePromises = Array.from(
+                      { length: pdf.numPages },
+                      (_, i) =>
+                        pdf.getPage(i + 1).then((page) => page.getTextContent())
+                    );
+                    Promise.all(pagePromises)
+                      .then((textContents) => {
+                        const pdfText = textContents
+                          .map((tc) =>
+                            tc.items.map((item) => item.str).join(" ")
+                          )
+                          .join("\n\n");
+                        resolve({ name: file.name, content: pdfText });
+                      })
+                      .catch(reject);
+                  })
+                  .catch(reject);
+              } else {
+                resolve({ name: file.name, content: e.target.result });
+              }
+            };
+            reader.onerror = reject;
+            if (file.type === "application/pdf")
+              reader.readAsArrayBuffer(file);
+            else reader.readAsText(file);
+          });
+        });
+
+        try {
+          const fileContents = await Promise.all(fileReadPromises);
+          let combinedContent = fileContents
+            .map(
+              (result) =>
+                `--- START OF FILE: ${result.name} ---\n\n${result.content}\n\n--- END OF FILE: ${result.name} ---`
+            )
+            .join("\n\n");
+          if (reportText) {
+            if (combinedContent) combinedContent += "\n\n";
+            combinedContent += `--- START OF PASTED TEXT ---\n\n${reportText}\n\n--- END OF PASTED TEXT ---`;
+          }
+
+          const analysisResult = await getAIAnalysis(combinedContent);
+          removeLoadingIndicator();
+          displayAnalysis(analysisResult);
+        } catch (error) {
+          removeLoadingIndicator();
+          console.error("Error during analysis:", error);
+          appendMessage(
+            "Sorry, there was an error processing your request. Please check the file formats and try again.",
+            "ai"
+          );
+        } finally {
+          document.getElementById("send-button").disabled = false;
+        }
+      }
+
+      function displayAnalysis(result) {
+        const chatContainer = document.getElementById("chat-container");
+        generatedLetters = result.letters;
+        // Store the full analysis result for GHL integration
+        window.currentAnalysisResult = result;
+
+        const formatCurrency = (amount) =>
+          new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+          }).format(amount);
+        const lowEnd =
+          result.caseValue && result.caseValue.lowEnd
+            ? formatCurrency(result.caseValue.lowEnd)
+            : "$0";
+        const highEnd =
+          result.caseValue && result.caseValue.highEnd
+            ? formatCurrency(result.caseValue.highEnd)
+            : "$0";
+
+        const analysisContainer = document.createElement("div");
+        analysisContainer.className =
+          "chat-bubble chat-bubble-ai p-4 rounded-lg";
+        analysisContainer.innerHTML = `
+          <h3 class="font-bold text-lg mb-2" style="color: var(--gold-primary);">Analysis Complete</h3>
+          <div class="text-sm space-y-4">
+              <div class="backdrop-blur-sm p-3 rounded-lg" style="background: linear-gradient(135deg, rgba(45, 95, 77, 0.3) 0%, rgba(45, 95, 77, 0.4) 100%); border: 1px solid var(--green-primary);">
+                  <h4 class="font-semibold" style="color: var(--gold-primary);">Identified Issues:</h4>
+                  <ul class="list-disc list-inside mt-1" style="color: var(--gold-light);">${result.issues
+                    .map(
+                      (issue) =>
+                        `<li><strong>${issue.type}:</strong> ${issue.description} (Account: ${issue.account})</li>`
+                    )
+                    .join("")}</ul>
+              </div>
+              <div class="backdrop-blur-sm p-3 rounded-lg" style="background: linear-gradient(135deg, rgba(45, 95, 77, 0.3) 0%, rgba(45, 95, 77, 0.4) 100%); border: 1px solid var(--green-primary);">
+                  <h4 class="font-semibold" style="color: var(--gold-primary);">Case Value Estimate (Willful Violation):</h4>
+                  <p class="mt-1" style="color: var(--gold-light);">Based on similar FCRA cases, the potential statutory and punitive damages could range from <strong style="color: var(--green-accent);">${lowEnd} to ${highEnd}</strong>. This is an informational estimate, not a guarantee of outcome or legal advice.</p>
+              </div>
+              <div class="backdrop-blur-sm p-3 rounded-lg" style="background: linear-gradient(135deg, rgba(45, 95, 77, 0.3) 0%, rgba(45, 95, 77, 0.4) 100%); border: 1px solid var(--green-primary);">
+                  <h4 class="font-semibold" style="color: var(--gold-primary);">Overall Strategy:</h4>
+                  <p class="mt-1" style="color: var(--gold-light);">${result.strategy}</p>
+              </div>
+              <div class="backdrop-blur-sm p-3 rounded-lg" style="background: linear-gradient(135deg, rgba(45, 95, 77, 0.3) 0%, rgba(45, 95, 77, 0.4) 100%); border: 1px solid var(--green-primary);">
+                  <h4 class="font-semibold" style="color: var(--gold-primary);">Step-by-Step Letter Sending Instructions:</h4>
+                  <div class="mt-1" style="color: var(--gold-light);">${result.letterSendingInstructions.replace(
+                    /\n/g,
+                    "<br>"
+                  )}</div>
+              </div>
+          </div>
+          <div class="mt-4">
+              <h4 class="font-semibold mb-2" style="color: var(--gold-primary);">Download Your Dispute Letters</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button onclick="checkUserDataAndDownload('step1')" class="px-3 py-2 rounded-lg transition duration-300 text-xs sm:text-sm w-full font-semibold" style="background: linear-gradient(135deg, rgba(45, 95, 77, 0.3) 0%, rgba(45, 95, 77, 0.4) 100%); border: 1px solid var(--gold-dark); color: var(--gold-light);" onmouseover="this.style.borderColor='var(--gold-primary)';" onmouseout="this.style.borderColor='var(--gold-dark)';">Step 1: CRA Dispute</button>
+                  <button onclick="checkUserDataAndDownload('step2')" class="px-3 py-2 rounded-lg transition duration-300 text-xs sm:text-sm w-full font-semibold" style="background: linear-gradient(135deg, rgba(45, 95, 77, 0.3) 0%, rgba(45, 95, 77, 0.4) 100%); border: 1px solid var(--gold-dark); color: var(--gold-light);" onmouseover="this.style.borderColor='var(--gold-primary)';" onmouseout="this.style.borderColor='var(--gold-dark)';">Step 2: MOV & ACDV Request</button>
+                  <button onclick="checkUserDataAndDownload('step3')" class="px-3 py-2 rounded-lg transition duration-300 text-xs sm:text-sm w-full font-semibold" style="background: linear-gradient(135deg, rgba(45, 95, 77, 0.3) 0%, rgba(45, 95, 77, 0.4) 100%); border: 1px solid var(--gold-dark); color: var(--gold-light);" onmouseover="this.style.borderColor='var(--gold-primary)';" onmouseout="this.style.borderColor='var(--gold-dark)';">Step 3: Furnisher Letter</button>
+                  <button onclick="checkUserDataAndDownload('step4')" class="px-3 py-2 rounded-lg transition duration-300 text-xs sm:text-sm w-full font-semibold" style="background: linear-gradient(135deg, rgba(45, 95, 77, 0.3) 0%, rgba(45, 95, 77, 0.4) 100%); border: 1px solid var(--gold-dark); color: var(--gold-light);" onmouseover="this.style.borderColor='var(--gold-primary)';" onmouseout="this.style.borderColor='var(--gold-dark)';">Step 4: Demand Letter</button>
+              </div>
+          </div>
+        `;
+
+        chatContainer.appendChild(analysisContainer);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      async function getAIAnalysis(reportText, onToken) {
+        const emit = typeof onToken === "function" ? onToken : () => {};
+        const apiKey = "sk-ba2ff135a0ab48218d88c776e41b32f0";
+        const apiUrl = "https://api.deepseek.com/v1/chat/completions";
+
+        const systemPrompt = window.BULLY_SYSTEM_PROMPT || "";
+
+        const payload = {
+          model: "deepseek-chat",
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: `Here is the combined text from the user's credit reports: \n\n${reportText}`,
+            },
+          ],
+          response_format: { type: "json_object" },
+          stream: true,
+        };
+
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          const errText = await response.text().catch(() => "");
+          throw new Error(`API request failed: ${response.status} ${errText}`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+        let fullText = "";
+        let finished = false;
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            if (trimmed.startsWith("data:")) {
+              const dataStr = trimmed.slice(5).trim();
+              if (dataStr === "[DONE]") {
+                buffer = "";
+                finished = true;
+                break;
+              }
+              try {
+                const evt = JSON.parse(dataStr);
+                const delta = evt?.choices?.[0]?.delta;
+                if (delta && typeof delta.content === "string") {
+                  fullText += delta.content;
+                  emit(delta.content);
+                }
+              } catch (e) {
+                // Ignore JSON parse errors for non-data lines in SSE
+              }
+            }
+          }
+          if (finished) break;
+        }
+
+        const cleanedJsonString = fullText.replace(/^```json\n|```$/g, "");
+        return JSON.parse(cleanedJsonString);
+      }
+
+      function openLeadCaptureModal(stepKey) {
+        currentDownloadStep = stepKey;
+        document
+          .getElementById("lead-capture-modal")
+          .classList.remove("hidden");
+      }
+
+      function checkUserDataAndDownload(stepKey) {
+        if (userData && userData.name && userData.phone && userData.email && userData.address) {
+          console.log("User data already exists, downloading directly for step:", stepKey);
+          downloadLetter(stepKey);
+        } else {
+          console.log("User data not found, opening modal for step:", stepKey);
+          openLeadCaptureModal(stepKey);
+        }
+      }
+
+      function showUserDataSavedMessage() {
+        const chatContainer = document.getElementById("chat-container");
+        const messageDiv = document.createElement("div");
+        messageDiv.className = "flex justify-start";
+        const bubble = document.createElement("div");
+        bubble.className = "chat-bubble chat-bubble-ai p-3 rounded-lg";
+        bubble.style.background = "linear-gradient(135deg, rgba(74, 155, 127, 0.3) 0%, rgba(58, 122, 99, 0.4) 100%)";
+        bubble.style.border = "1px solid var(--green-accent)";
+        const content = document.createElement("p");
+        content.className = "text-sm";
+        content.style.color = "var(--gold-light)";
+        content.innerHTML = "✅ <strong>Your information has been saved!</strong> You can now download other letters without re-entering your details.";
+        bubble.appendChild(content);
+        messageDiv.appendChild(bubble);
+        chatContainer.appendChild(messageDiv);
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+      }
+
+      async function sendWelcomeEmail(firstName, email) {
+        // Extract first name from full name
+        const firstNameOnly = firstName ? firstName.split(' ')[0] : 'there';
+        
+        const welcomeMessage = `👋 Hey ${firstNameOnly}, welcome to REHABILITATOR!
+Great news—your credit reports have been scanned and your dispute letters are ready. 🚀
+
+👉 Inside your file you'll see the specific errors we found on your reports. Each one could mean deletions or even compensation if not corrected.
+
+📬 Next step: go to OnlineCertifiedMail.com and send your letters today. Certified mail gives you proof the bureaus received them—this is your evidence trail.
+
+You just took the first step most people never do. Keep going—you're on your way to real credit justice.`;
+
+        // Send email via GoHighLevel integration
+        try {
+          console.log('Sending welcome email to:', email);
+          // Use the existing GHL integration to send the welcome email
+          if (window.GHLIntegration && window.GHLIntegration.sendEmail) {
+            const emailSuccess = await window.GHLIntegration.sendEmail(email, 'Welcome to REHABILITATOR!', welcomeMessage);
+            if (emailSuccess) {
+              console.log('Welcome email sent successfully to:', email);
+            } else {
+              console.log('Welcome email failed to send to:', email);
+            }
+          } else {
+            // Fallback: log the message for manual sending
+            console.log('GHL Integration not available, logging message for manual sending:');
+            console.log('To:', email);
+            console.log('Subject: Welcome to REHABILITATOR!');
+            console.log('Message:', welcomeMessage);
+          }
+        } catch (error) {
+          console.error('Error sending welcome email:', error);
+        }
+      }
+
+      function closeLeadCaptureModal() {
+        document.getElementById("lead-capture-modal").classList.add("hidden");
+      }
+
+      async function handleLeadCaptureSubmit(event) {
+        event.preventDefault();
+        userData = {
+          name: document.getElementById("user-name").value,
+          phone: document.getElementById("user-phone").value,
+          email: document.getElementById("user-email").value,
+          address: document.getElementById("user-address").value,
+        };
+        
+        console.log("User data saved:", userData);
+        
+        // Show success message
+        showUserDataSavedMessage();
+        
+        // Send automated welcome message via email
+        sendWelcomeEmail(userData.name, userData.email);
+        
+        // Save to GoHighLevel contact list (only once)
+        if (!ghlContactSaved) {
+          try {
+        console.log('Starting GHL integration...');
+        console.log('User name:', userData.name);
+        console.log('User email:', userData.email);
+            
+            if (!window.GHLIntegration) {
+              throw new Error('GHL Integration not loaded');
+            }
+            
+            if (!window.GHLIntegration.handleGHLFormSubmission) {
+              throw new Error('handleGHLFormSubmission function not found');
+            }
+            
+            console.log('About to call GHL integration with analysis data:', window.currentAnalysisResult);
+            const ghlSuccess = await window.GHLIntegration.handleGHLFormSubmission(userData, window.currentAnalysisResult);
+            console.log('GHL integration result:', ghlSuccess);
+            if (ghlSuccess) {
+              console.log('Contact successfully saved to GHL AI-Scanner-Uploaded list');
+              ghlContactSaved = true; // Mark as saved
+            } else {
+              console.log('GHL integration returned false');
+            }
+          } catch (error) {
+            console.error('GHL integration error:', error);
+            console.error('Error details:', error.message);
+            console.error('Error stack:', error.stack);
+            // Continue with download even if GHL fails
+          }
+        } else {
+          console.log('Contact already saved to GHL, skipping...');
+        }
+        
+        // Proceed with letter download
+        downloadLetter(currentDownloadStep);
+        closeLeadCaptureModal();
+        document.getElementById("lead-capture-form").reset();
+      }
+
+      function downloadLetter(stepKey) {
+        // Check if user data exists and has all required fields
+        if (!userData || !userData.name || !userData.phone || !userData.email || !userData.address) {
+          console.log("User data not found or incomplete, opening modal for step:", stepKey);
+          openLeadCaptureModal(stepKey);
+          return;
+        }
+
+        console.log("User data found, proceeding with download for step:", stepKey);
+        let letterContent = generatedLetters[stepKey];
+        if (!letterContent) {
+          console.error("Letter content not available for step:", stepKey);
+          alert("Sorry, the content for this letter could not be generated.");
+          return;
+        }
+
+        const today = new Date().toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+        letterContent = letterContent
+          .replace(/\[Your Name\]/g, userData.name)
+          .replace(/\[Your Address\]/g, userData.address)
+          .replace(/\[Your Phone Number\]/g, userData.phone)
+          .replace(/\[Your Email\]/g, userData.email)
+          .replace(/\[Date\]/g, today);
+
+        const blob = new Blob([letterContent], {
+          type: "text/plain",
+        });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `REHABILITATOR_Dispute_Letter_${stepKey}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+
+      document
+        .getElementById("user-input")
+        .addEventListener("keydown", function (event) {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage();
+          }
+        });
+
+      // Test GHL integration on page load
+      window.addEventListener('load', function() {
+        console.log('Page loaded, testing GHL integration...');
+        console.log('GHL Integration available:', !!window.GHLIntegration);
+        if (window.GHLIntegration) {
+          console.log('GHL Integration functions:', Object.keys(window.GHLIntegration));
+        }
+      });
+    </script>
+  </body>
+</html>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     

@@ -1,0 +1,60 @@
+body {
+  font-family: "Inter", sans-serif;
+  background-color: #0A0A0A;
+}
+.chat-bubble {
+  max-width: 80%;
+}
+.chat-bubble-user {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15) 0%, rgba(184, 148, 31, 0.2) 100%);
+  color: #E8C878;
+  border: 1px solid #B8941F;
+  backdrop-filter: blur(12px);
+}
+.chat-bubble-ai {
+  background: linear-gradient(135deg, rgba(45, 95, 77, 0.2) 0%, rgba(45, 95, 77, 0.3) 100%);
+  color: #E8C878;
+  border: 1px solid #2D5F4D;
+  backdrop-filter: blur(12px);
+}
+/* Scrollbar styles for webkit browsers */
+#chat-container::-webkit-scrollbar,
+#analysis-output::-webkit-scrollbar {
+  width: 8px;
+}
+#chat-container::-webkit-scrollbar-track,
+#analysis-output::-webkit-scrollbar-track {
+  background: rgba(45, 95, 77, 0.1);
+}
+#chat-container::-webkit-scrollbar-thumb,
+#analysis-output::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #D4AF37 0%, #B8941F 100%);
+  border-radius: 4px;
+}
+#chat-container::-webkit-scrollbar-thumb:hover,
+#analysis-output::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #E8C878 0%, #D4AF37 100%);
+}
+.loader {
+  border: 4px solid rgba(45, 95, 77, 0.3);
+  border-top: 4px solid #D4AF37;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+/* Style for the file remove button */
+.remove-file-btn {
+  font-size: 1.2rem;
+  line-height: 1;
+  font-weight: bold;
+}
+
