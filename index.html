@@ -10,9 +10,50 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
     <script>
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js`;
+      // Load PDF.js with better error handling for Safari
+      (function() {
+        const pdfjsScript = document.createElement('script');
+        pdfjsScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js';
+        pdfjsScript.crossOrigin = 'anonymous';
+        pdfjsScript.async = true;
+        
+        pdfjsScript.onload = function() {
+          if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
+            window.pdfjsLibReady = true;
+            console.log('PDF.js loaded successfully');
+          } else {
+            console.error('PDF.js library not available after load');
+            window.pdfjsLibReady = false;
+          }
+        };
+        
+        pdfjsScript.onerror = function() {
+          console.error('Failed to load PDF.js library from CDN');
+          window.pdfjsLib = null;
+          window.pdfjsLibReady = false;
+          // Try alternative CDN
+          const altScript = document.createElement('script');
+          altScript.src = 'https://unpkg.com/pdfjs-dist@2.10.377/build/pdf.min.js';
+          altScript.crossOrigin = 'anonymous';
+          altScript.async = true;
+          altScript.onload = function() {
+            if (typeof pdfjsLib !== 'undefined') {
+              pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@2.10.377/build/pdf.worker.min.js';
+              window.pdfjsLibReady = true;
+              console.log('PDF.js loaded from alternative CDN');
+            }
+          };
+          altScript.onerror = function() {
+            console.error('Failed to load PDF.js from alternative CDN');
+            window.pdfjsLibReady = false;
+          };
+          document.head.appendChild(altScript);
+        };
+        
+        document.head.appendChild(pdfjsScript);
+      })();
     </script>
     <link rel="stylesheet" href="styles.css" />
     <script src="prompt.js"></script>
@@ -627,6 +668,12 @@
             const reader = new FileReader();
             reader.onload = (e) => {
               if (file.type === "application/pdf") {
+                // Check if PDF.js is loaded
+                if (typeof pdfjsLib === 'undefined' || !pdfjsLib) {
+                  reject(new Error('PDF.js library failed to load. Please refresh the page and try again. If the problem persists, try using a different browser or converting your PDF to text format.'));
+                  return;
+                }
+                
                 const typedarray = new Uint8Array(e.target.result);
                 pdfjsLib
                   .getDocument(typedarray)
@@ -647,7 +694,9 @@
                       })
                       .catch(reject);
                   })
-                  .catch(reject);
+                  .catch((error) => {
+                    reject(new Error(`Failed to parse PDF: ${error.message}. Please try converting the PDF to text format or use a different file.`));
+                  });
               } else {
                 resolve({ name: file.name, content: e.target.result });
               }
@@ -678,10 +727,18 @@
         } catch (error) {
           removeLoadingIndicator();
           console.error("Error during analysis:", error);
-          appendMessage(
-            "Sorry, there was an error processing your request. Please check the file formats and try again.",
-            "ai"
-          );
+          
+          // Provide more specific error messages
+          let errorMessage = "Sorry, there was an error processing your request.";
+          if (error.message && error.message.includes('PDF.js')) {
+            errorMessage = "PDF processing failed. This may be a Safari compatibility issue. Please try:\n1. Refreshing the page\n2. Using Chrome or Firefox\n3. Converting your PDF to text format (.txt) and uploading that instead";
+          } else if (error.message && error.message.includes('Failed to parse PDF')) {
+            errorMessage = error.message;
+          } else if (error.message && error.message.includes('API request failed')) {
+            errorMessage = "Unable to connect to the analysis service. Please check your internet connection and try again.";
+          }
+          
+          appendMessage(errorMessage, "ai");
         } finally {
           document.getElementById("send-button").disabled = false;
         }
