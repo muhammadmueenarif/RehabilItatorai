@@ -1,4 +1,5 @@
 // Vercel Serverless Function - API Proxy for DeepSeek
+// Uses ES6 exports for Vercel compatibility
 export default async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -85,3 +86,4 @@ export default async function handler(req, res) {
   }
 }
 
+// ES6 export for Vercel (works with dynamic import in Express too)

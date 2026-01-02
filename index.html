@@ -756,8 +756,13 @@
       async function getAIAnalysis(reportText, onToken) {
         const emit = typeof onToken === "function" ? onToken : () => {};
         
-        // Use Vercel serverless function to avoid CORS issues
-        const apiUrl = "/api/chat";
+        // Auto-detect API URL based on current host
+        // If using Live Server (port 5501), redirect to Express server (port 3000)
+        let apiUrl = "/api/chat";
+        if (window.location.port === "5501" || window.location.hostname === "127.0.0.1") {
+          // Use absolute URL to point to Express server
+          apiUrl = "http://localhost:3000/api/chat";
+        }
 
         const systemPrompt = window.BULLY_SYSTEM_PROMPT || "";
 
